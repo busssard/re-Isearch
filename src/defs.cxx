@@ -105,7 +105,7 @@ Copyright (c) 2022-2023 Project Exodus 3.0 (Germany) and the ExoDAO Network Asso
 Copyright (c) 2024-2025 re-Isearch.org (Germany)\n\n\
 This software has been made available by generous public support including grants from the EU's NGI0\n\
 Discovery Fund through NLnet, grants agreement No 825322 and No 101135429 (wth support also from SERI)\n\
-under the NGI0 Commons Fund for project Schmate as well as the German BMBF as grant Nr. 01IS22S32 for\n\
+under the NGI0 Commons Fund for project Embeddings as well as the German BMBF as grant Nr. 01IS22S32 for\n\
 the Exodus 3.0 project.\n\
 Thanks also to the Mercator Foundation and Opendata.ch for their generous support of the ExoDAO project.\n\
 This software is provided under the conditions of the Apache License Version 2.0, January 2004";

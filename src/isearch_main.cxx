@@ -34,6 +34,27 @@ static const int _isearch_main_version = 3;
 #include <sys/resource.h> 
 #endif
 
+/*
+ * Developer orientation
+ * =====================
+ *
+ * This translation unit is the main implementation behind the `Isearch` CLI.
+ * The file is historically large because it combines argument parsing, query
+ * preparation, execution and output formatting in one place.
+ *
+ * High-level flow:
+ *   - Parse command-line options (output mode, query semantics, limits).
+ *   - Open target DBs through `VIDB`/`IDB` abstractions.
+ *   - Build query objects (`SQUERY`/RPN helpers) and execute search.
+ *   - Iterate results, resolve record metadata/field context, print output.
+ *   - Optionally report resource usage and timing for diagnostics.
+ *
+ * Refactor note:
+ *   Any future extraction should keep this order explicit by splitting into
+ *   helpers: parse -> execute -> render. Behavior must remain compatible with
+ *   existing scripts that consume current output conventions.
+ */
+
 
 #if 0 /* Obsolete */
 static void dumpXMLHitTable(FCLIST *HitTable)

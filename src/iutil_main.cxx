@@ -25,6 +25,25 @@ Description:   Command-line utility for Isearch databases
 
 #include "io.hxx"
 
+/*
+ * Developer orientation
+ * =====================
+ *
+ * This file implements the `Iutil` maintenance/administration command line.
+ * It is used by operators and developers to inspect, verify and manipulate
+ * existing re-Isearch databases without writing custom code.
+ *
+ * Main execution responsibilities:
+ *   - parse utility command flags and mode selectors
+ *   - open the selected DB and related structures
+ *   - execute maintenance actions (dump/check/list/move/delete flags)
+ *   - print diagnostics in stable CLI-friendly formats
+ *
+ * Compatibility note:
+ *   Existing deployments rely on this command behavior in scripts. Keep option
+ *   names and output expectations stable when extending functionality.
+ */
+
 extern "C" {
   int _Iutil_main(int argc, char **argv);
 };

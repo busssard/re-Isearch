@@ -51,7 +51,7 @@ FIELDTYPE  IDBOBJ::GetFieldType(const STRING& FieldName)
   STRING s ( FieldTypes.GetValue(field.MakeUpper()) );
 
 #if 1
-  /* New general model for Schmate */
+  /* New general model for Embeddings */
   if (s.IsEmpty()) {
      if (defaultFieldType.Defined())
        {

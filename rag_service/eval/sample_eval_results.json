@@ -1,0 +1,22 @@
+{
+  "per_query": [
+    {
+      "query_id": "q1",
+      "mrr": 1.0,
+      "recall_at_k": 1.0,
+      "ndcg_at_k": 1.0,
+      "keyword_hit": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "query_id": "q2",
+      "mrr": 0.5,
+      "recall_at_k": 1.0,
+      "ndcg_at_k": 0.6309,
+      "keyword_hit": 0.5,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    }
+  ]
+}

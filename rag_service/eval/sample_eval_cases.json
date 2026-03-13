@@ -1,0 +1,22 @@
+[
+  {
+    "query_id": "q1",
+    "index": "kb",
+    "question": "What is retrieval-augmented generation?",
+    "relevant_chunk_ids": ["doc-1#chunk-1", "doc-2#chunk-1"],
+    "required_citations": ["doc-1#chunk-1"],
+    "expected_keywords": ["retrieval", "generation"],
+    "mode": "knn",
+    "k": 5
+  },
+  {
+    "query_id": "q2",
+    "index": "kb",
+    "question": "Why should responses include citations?",
+    "relevant_chunk_ids": ["doc-3#chunk-2"],
+    "required_citations": ["doc-3#chunk-2"],
+    "expected_keywords": ["citation", "grounded"],
+    "mode": "knn",
+    "k": 5
+  }
+]

@@ -6,6 +6,27 @@ File:		index.hxx
 Description:	Class INDEX
 @@@*/
 
+/*
+ * INDEX class overview
+ * ====================
+ *
+ * `INDEX` is the central orchestration surface for a single concrete index.
+ * It coordinates term dictionaries, postings, field caches, document metadata,
+ * scan APIs and query execution adapters.
+ *
+ * Think of this API in layers:
+ *   1) configuration/state controls (cache limits, thresholds, profile values)
+ *   2) ingestion helpers (record/field write paths)
+ *   3) lookup/scan APIs (term scans, glob/phonetic/date/numeric scans)
+ *   4) query execution entrypoints (`Search`, type-specific searches)
+ *   5) diagnostics/maintenance (`Dump`, cleanup, centroid, merge status)
+ *
+ * Historical note:
+ *   The interface is intentionally broad to preserve compatibility with long-
+ *   standing command tools and bindings. Prefer additive changes and document
+ *   behavior changes carefully.
+ */
+
 #ifndef INDEX_HXX
 #define INDEX_HXX
 
@@ -33,6 +54,7 @@ extern NUMERICOBJ (*_IB_smiles_hash)(const char *);
 class INDEX /* : public IDBOBJ */ {
 friend class IDB;
 public:
+  // Term matching strategy used by TermSearch/scan paths.
   enum MATCH {Unspecified, LeftMatch, Exact, ExactTerm, ExactTermCase,
 	Phonetic, PhoneticCase, AlwaysMatches, LeftAlwaysMatches,
 	Numerical, FreeForm, Phrase};

@@ -1,0 +1,98 @@
+#pragma once
+
+#include "SBertGGML.hpp"
+#include "HnswConfig.hpp"
+#include "ShardedIndex.hpp"
+
+#include <string>
+#include <memory>
+#include <unordered_map>
+
+#define USE_LRUCACHE 1
+
+#if USE_LRUCACHE
+#include "LRUCache.hpp"
+#endif
+
+/* To use instead Llama.cpp instead of bert.cpp
+
+// Previously:
+SBertGGML embedder("sbert.ggml");
+
+// Now:
+LlamaEmbedder embedder("llama-2-7b.Q4_K_M.gguf");
+
+
+| Topic             | Recommendation 
+| ----------------- | --------------------------------------------------------------------------------------- |
+| **Model Choice**  | Use a **LLaMA model trained or fine-tuned for embeddings** (e.g., `mxbai-embed-large`,  |
+|                   | `nomic-embed-text-v1.5.gguf`) rather than a chat model.                                 |
+| **Performance**   | LLaMA embeddings are slower than SBERT in `bert.cpp`, but higher quality.               |
+|                   | Use `ctx_params.n_threads` for tuning.                                                  |
+| **Normalization** | If you use cosine similarity in HNSW, normalize the embedding after retrieval.          |
+| **Memory**        | LLaMA models require more RAM — ensure `--n-gpu-layers` is 0 if running CPU-only.       |
+
+
+*/
+
+
+class BertIndexManager {
+    SBertGGML & embedder;
+    hnswlib::HnswConfig & cfg;
+    bool  searchOnly;
+#if USE_LRUCACHE
+    LRUCache<std::string, ShardedIndex> index_cache;
+#else
+    std::unordered_map<std::string, std::unique_ptr<ShardedIndex>> indexes;
+#endif
+
+public:
+#if USE_LRUCACHE
+    BertIndexManager(SBertGGML & e, hnswlib::HnswConfig &c, size_t max_cached=3, bool searchOnly = false);
+#else
+    BertIndexManager(SBertGGML & e, hnswlib::HnswConfig &c);
+#endif
+
+    void clear(const std::string &name);
+
+    // get or create a named index
+    ShardedIndex & getOrCreate(const std::string & name);
+
+    // shorthands
+    void append(const std::string & name, const std::string & sentence);
+    void append(const std::string & name, const std::string & sentence, int64_t sentence_id);
+
+    void remove(const std::string & name, size_t label, size_t shard = 0);
+
+    void undelete(const std::string &name, size_t label, size_t shard = 0);
+    void undelete(const std::string & name, size_t label, const OffsetEntry &entry, size_t shard);
+
+    void delete_byAddress(const std::string & name, int64_t addr, size_t shard = 0);
+    void undelete_byAddress(const std::string & name, int64_t addr, size_t shard = 0);
+
+    std::vector<SearchResult> search(const std::string & name, const std::string & query); // Use config
+
+    std::vector<SearchResult> knn(const std::string & name, const std::string & query, size_t k = 0);
+    std::vector<SearchResult> radius(const std::string & name, const std::string & query, float minScore = -1.0f);
+    std::vector<SearchResult> relative(const std::string & name, const std::string & query, float alpha = -1.0f);
+    std::vector<SearchResult> adaptive(const std::string & name, const std::string & query,
+                                       float alpha = -1.0f, size_t minN = 0, size_t lookahead = 0, float gapDelta = -1.0f);
+    std::vector<SearchResult> epsilon_search(const std::string &name, const std::string &query, float epsilon = -1.0f);
+
+#if defined(EMBEDDINGS_LEGACY_EXPERIMENTAL_CODE) /* Parallel is now defined by a configuration */
+    std::vector<SearchResult> pknn(const std::string & name, const std::string & query, size_t k = 0);
+    std::vector<SearchResult> pradius(const std::string & name, const std::string & query, float minScore = -1.0f);
+#endif
+
+    void merge(const std::string & name);
+    void flush(const std::string & name);
+#if USE_LRUCACHE
+    void flush_all() ; // Flushes the index cache
+#endif
+    size_t shard_count(const std::string & name);
+
+    std::string get_text(const std::string & name, const SearchResult & r, bool full_sentence=false);
+    std::string reconstruct_sid(const std::string & name, int64_t sid);
+    std::string reconstruct_label(const std::string & name, size_t label);
+};
+
