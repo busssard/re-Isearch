@@ -18,6 +18,20 @@ int errno;
 // NOTE: page size is 1KB - do not change!!
 #define CACHE_SIZE_IN_KB 64
 
+/*
+ * DB wrapper notes
+ * ================
+ *
+ * This class is a thin adaptor over legacy Berkeley DB APIs used by the core
+ * indexing/search components. It keeps cursor-centric operations explicit and
+ * exposes a small, stable surface used throughout the codebase.
+ *
+ * Key invariants:
+ *   - page size stays 1024 bytes for existing on-disk compatibility
+ *   - `isOpen` gates all operations that touch `dbp` / `dbcp`
+ *   - `Start_*` methods position cursors; `Get_*` methods advance iteration
+ */
+
 DB::DB()
 {
   isOpen = false;
@@ -33,6 +47,7 @@ DB::~DB()
 
 int DB::OpenReadWrite(const STRING& filename, int mode)
 {
+  // Open existing database read/write, or create it when absent.
   // Initialize the database environment.
   dbenv = db_init((char *)NULL);
   memset(&dbinfo, 0, sizeof(dbinfo));
@@ -65,6 +80,7 @@ int DB::OpenReadWrite(const STRING& filename, int mode)
 
 int DB::OpenRead(const STRING& filename)
 {
+    // Open in strict read-only mode for safe query/inspection workflows.
     //
     // Initialize the database environment.
     //
@@ -101,6 +117,7 @@ int DB::OpenRead(const STRING& filename)
 
 int DB::Close()
 {
+    // Close cursor first, then DB handle, then environment.
     if (isOpen)
     {
 	//
@@ -117,12 +134,13 @@ int DB::Close()
 
 void DB::Start_Get()
 {
-    DBT	nextkey;
+    // Position sequence cursor at first key in lexical order.
+    DBT	next_key;
 
     //
-    // skey and nextkey are just dummies
+    // skey and next_key are just dummies
     //
-    memset(&nextkey, 0, sizeof(DBT));
+    memset(&next_key, 0, sizeof(DBT));
     memset(&skey, 0, sizeof(DBT));
 
 //    skey.data = "";
@@ -133,7 +151,7 @@ void DB::Start_Get()
 	//
 	// Set the cursor to the first position.
 	//
-        seqrc = dbcp->c_get(dbcp, &skey, &nextkey, DB_FIRST);
+        seqrc = dbcp->c_get(dbcp, &skey, &next_key, DB_FIRST);
 	seqerr = seqrc;
     }
 }
@@ -141,20 +159,21 @@ void DB::Start_Get()
 
 STRING DB::Get_Next()
 {
+    // Return current key and advance cursor by one.
     //
     // Looks like get Get_Next() and Get_Next_Seq() are pretty much the same...
     //
-    DBT	nextkey;
+    DBT	next_key;
 	
-    memset(&nextkey, 0, sizeof(DBT));
+    memset(&next_key, 0, sizeof(DBT));
 
     if (isOpen && !seqrc)
     {
-	STRING lkey((char *)skey.data, 0, skey.size);
+	STRING current_key((char *)skey.data, 0, skey.size);
 	skey.flags = 0;
-        seqrc = dbcp->c_get(dbcp, &skey, &nextkey, DB_NEXT);
+	seqrc = dbcp->c_get(dbcp, &skey, &next_key, DB_NEXT);
 	seqerr = seqrc;
-	return lkey;
+	return current_key;
     }
     else
 	return NulString;
@@ -162,10 +181,11 @@ STRING DB::Get_Next()
 
 void DB::Start_Seq(const STRING& Key)
 {
-    DBT	nextkey;
+    // Position cursor at first key >= requested prefix.
+    DBT	next_key;
 
     memset(&skey, 0, sizeof(DBT));
-    memset(&nextkey, 0, sizeof(DBT));
+    memset(&next_key, 0, sizeof(DBT));
 
     skey.data = Key.c_str();
     skey.size = Key.length();
@@ -179,7 +199,7 @@ void DB::Start_Seq(const STRING& Key)
 	// anything. Setting to DB_SET_RANGE will still find the `first'
 	// word after boo* (which is book).
 	//
-        seqrc = dbcp->c_get(dbcp, &skey, &nextkey, DB_SET_RANGE);
+        seqrc = dbcp->c_get(dbcp, &skey, &next_key, DB_SET_RANGE);
 	seqerr = seqrc;
     }
 }
@@ -187,62 +207,64 @@ void DB::Start_Seq(const STRING& Key)
 
 STRING DB::Get_Next_Seq()
 {
-    DBT	nextkey;
+    // Continue sequence started by Start_Seq.
+    DBT	next_key;
 	
-    memset(&nextkey, 0, sizeof(DBT));
+    memset(&next_key, 0, sizeof(DBT));
 
     if (isOpen && !seqrc)
     {
-        STRING lkey((char *)skey.data, 0, skey.size);
+        STRING current_key((char *)skey.data, 0, skey.size);
 
 	skey.flags = 0;
-        seqrc = dbcp->c_get(dbcp, &skey, &nextkey, DB_NEXT);
+        seqrc = dbcp->c_get(dbcp, &skey, &next_key, DB_NEXT);
 	seqerr = seqrc;
-	return lkey;
+	return current_key;
     }
   return 0;
 }
 
 int DB::Put(const STRING &key, const STRING &data)
 {
-    DBT	k, d;
+    // Upsert key/value payload into the BTREE store.
+    DBT	key_record, data_record;
 
-    memset(&k, 0, sizeof(DBT));
-    memset(&d, 0, sizeof(DBT));
+    memset(&key_record, 0, sizeof(DBT));
+    memset(&data_record, 0, sizeof(DBT));
 
     if (!isOpen)
 	return NOTOK;
 
-    k.data = key.get();
-    k.size = key.length();
+    key_record.data = key.get();
+    key_record.size = key.length();
 
-    d.data = data.get();
-    d.size = data.length();
+    data_record.data = data.get();
+    data_record.size = data.length();
 
     //
     // A 0 in the flags in put means replace, if you didn't specify DB_DUP
     // somewhere else...
     //
-    return (dbp->put)(dbp, NULL, &k, &d, 0) == 0 ? OK : NOTOK;
+    return (dbp->put)(dbp, NULL, &key_record, &data_record, 0) == 0 ? OK : NOTOK;
 }
 
 
 int DB::Get(const STRING &key, STRING &data)
 {
-    DBT	k, d;
+    DBT	key_record, data_record;
 
-    memset(&k, 0, sizeof(DBT));
-    memset(&d, 0, sizeof(DBT));
+    memset(&key_record, 0, sizeof(DBT));
+    memset(&data_record, 0, sizeof(DBT));
 
-    k.data = key.get();
-    k.size = key.length();
+    key_record.data = key.get();
+    key_record.size = key.length();
 
-    int rc = dbp->get(dbp, NULL, &k, &d, 0);
-    if (rc)
+    int lookup_status = dbp->get(dbp, NULL, &key_record, &data_record, 0);
+    if (lookup_status)
 	return NOTOK;
 
     data = 0;
-    data.append((char *)d.data, d.size);
+    data.append((char *)data_record.data, data_record.size);
     return OK;
 }
 
@@ -302,4 +324,3 @@ DB_ENV *DB::db_init(char *home)
     }
     return (dbenv);
 }
-

@@ -11,6 +11,23 @@ File:		record.cxx
 Description:	Class RECORD - Database Record
 @@@*/
 
+/*
+ * RECORD lifecycle notes
+ * ======================
+ *
+ * `RECORD` is the canonical metadata envelope describing one logical source
+ * document (or one segmented subrange of a document) for indexing.
+ *
+ * Core responsibilities in this unit:
+ *   - normalize and hold file/path identity
+ *   - track byte offsets (`RecordStart`/`RecordEnd`) for partial records
+ *   - preserve timestamps and classification metadata
+ *   - serialize/deserialize record metadata to index-maintained stores
+ *
+ * Most indexing and retrieval paths assume this object is the source of truth
+ * for location + temporal metadata; preserve field semantics when refactoring.
+ */
+
 #include "common.hxx"
 #include "magic.hxx"
 #include "lang-codes.hxx"

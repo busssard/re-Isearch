@@ -36,6 +36,10 @@ Under [doctypes/](https://github.com/re-Isearch/re-Isearch/tree/master/doctype) 
 ## Building, installing, developing
 For information on building, installing, developing and using the system please consult the handbook in [docs/](https://github.com/re-Isearch/re-Isearch/blob/master/docs/re-Isearch-Handbook.pdf).
 
+For a contributor-first walkthrough and modernization-oriented orientation, see:
+- [Repository tutorial](./docs/REPO_TUTORIAL.md)
+- [Embeddings integration guide](./docs/EMBEDDINGS_INTEGRATION_GUIDE.md)
+
 A basic cheat-sheet is in [INSTALLATION](./INSTALLATION)
 
 In the directory bin/ and lib/ are binaries of standalone tools compiled on Ubuntu 18.04.2 LTS and targetting Intel Skylake or newer processors. They are included solely to enable fast software evaluations.
@@ -50,4 +54,3 @@ This project was funded through the NGI0 Discovery Fund, a fund established by N
 
 
 <IMG SRC="https://nlnet.nl/image/logo_nlnet.svg" ALT="NLnet Foundation" height=100> <IMG SRC="https://nlnet.nl/logo/NGI/NGIZero-green.hex.svg" ALT="NGI0 Search" height=100> &nbsp; &nbsp; <IMG SRC="https://ngi.eu/wp-content/uploads/sites/77/2017/10/bandiera_stelle.png" ALT="EU" height=100>
-
